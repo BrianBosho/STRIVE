@@ -11,6 +11,7 @@ from torch_geometric.nn import MessagePassing
 
 from models.common import MLP
 
+
 from utils.transforms import transform2frame
 
 class SceneInteractionNet(nn.Module):

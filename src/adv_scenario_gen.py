@@ -141,6 +141,8 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
     batch_map_idx = []
     batch_total_NA = 0
     for i, data in enumerate(pbar_data):
+        if i == 20:
+            break
         start_t = time.time()
         sample_pred = None
         scene_graph, map_idx = data

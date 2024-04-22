@@ -75,7 +75,7 @@ class NuScenesDataset(Dataset):
                  flip_singapore=True,
                  seq_interval=1,
                  randomize_val=False,
-                 val_size=200,
+                 val_size=50,
                  scenario_path=None,
                  require_full_past=False,
                  use_challenge_splits=False,
@@ -302,6 +302,7 @@ class NuScenesDataset(Dataset):
         #   training set and we use the true val split for testing
         num_in_train_val = self.val_size if self.version == 'trainval' else 2 # mini is just hardcoded
         scenes = np.array(scenes)
+        scenes = scenes[:200]
         print('num total scenes before split: %d' % (len(scenes)))
         val_mask = np.zeros((scenes.shape[0]), dtype=bool)
         if self.split in ['train', 'val']:

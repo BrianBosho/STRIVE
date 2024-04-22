@@ -192,9 +192,9 @@ class TrafficModel(nn.Module):
         map_feat = self.encode_map(scene_graph, map_idx, map_env) # NA x map_feat
 
         # extract past motion feature for each agent
-        past_feat = self.encode_past(scene_graph)
+        past_feat = self.encode_past(scene_graph)  
 
-        # extract future motion for each agent
+        # extract future motion for each agent 
         future_feat = self.encode_future(scene_graph)
 
         # PRIOR

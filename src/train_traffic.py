@@ -11,6 +11,7 @@ import torch.optim as optim
 import numpy as np
 
 from torch_geometric.data import DataLoader as GraphDataLoader
+from torch.cuda.amp import GradScaler, autocast
 
 from models.traffic_model import TrafficModel
 from losses.traffic_model import TrafficModelLoss
@@ -112,7 +113,16 @@ def run_one_epoch(data_loader, model, map_env, loss_fn, device, out_path,
                 # training step for generator
                 optimizer.zero_grad()
                 loss.backward()
+                for param in model.parameters():
+                    if not param.requires_grad:
+                        param.grad = None
                 optimizer.step()
+
+            # if train:
+            #     # training step for generator
+            #     optimizer.zero_grad()
+            #     loss.backward()
+            #     optimizer.step()
 
             # compute interpretable errors
             err_dict = loss_fn.compute_err(scene_graph, pred,
@@ -272,9 +282,10 @@ def main():
     Logger.log('Num model params: %d' % (count_params(model)))
 
     # create optimizer
-    optimizer = optim.Adam(model.parameters(),
-                           lr=cfg.lr,
-                           weight_decay=cfg.weight_decay)
+    # optimizer = optim.Adam(model.parameters(),
+    #                        lr=cfg.lr,
+    #                        weight_decay=cfg.weight_decay)
+    optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=cfg.lr)
 
     # load model weights & optimizer to start from, if given
     ckpt_epoch = 0
@@ -285,6 +296,8 @@ def main():
                                                 map_location=device)
         Logger.log('Loaded checkpoint from epoch %d with validation loss %f...' % (ckpt_epoch, ckpt_eval_loss))
 
+    for param in model.parameters():
+        param.requires_grad = False
     # so can unnormalize as needed
     model.set_normalizer(train_dataset.get_state_normalizer())
     model.set_att_normalizer(train_dataset.get_att_normalizer())
@@ -303,6 +316,21 @@ def main():
     mkdir(ckpts_path)
     step_counter = 0
     min_eval_loss = ckpt_eval_loss
+
+    # Assuming `model` is your model
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Now, let's say you want to only train parameters in a specific layer, for example, the last layer
+    for param in model.past_encoder.parameters():
+        param.requires_grad = True
+
+    for param in model.future_encoder.parameters():
+        param.requires_grad = True
+
+
+    scaler = GradScaler()
+
     for epoch in range(ckpt_epoch, cfg.epochs):
         Logger.log('Starting epoch %d...' % (epoch))
 
@@ -319,7 +347,9 @@ def main():
 
         # train for one epoch
         start_t = time.time()
-        model.train()                           
+        model.train()         
+
+
         step_counter, _ = run_one_epoch(train_loader, model, map_env, loss_fn, device, cfg.out,
                                                         train=True,
                                                         optimizer=optimizer,
